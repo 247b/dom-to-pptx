@@ -41,7 +41,8 @@ Most HTML-to-PPTX libraries fail when faced with modern web design. They break o
 ## Installation
 
 ```bash
-npm install dom-to-pptx
+npm config set @247b:registry https://npm.pkg.github.com
+npm install @247b/dom-to-pptx
 ```
 
 ## Usage
@@ -50,10 +51,10 @@ This library is intended for use in the browser (React, Vue, Svelte, Vanilla JS,
 
 ### 1. Basic Example (Auto-Font Embedding)
 
-By default, `dom-to-pptx` attempts to automatically find and embed your web fonts.
+By default, `@247b/dom-to-pptx` attempts to automatically find and embed your web fonts.
 
 ```javascript
-import { exportToPptx } from 'dom-to-pptx';
+import { exportToPptx } from '@247b/dom-to-pptx';
 
 document.getElementById('export-btn').addEventListener('click', async () => {
   // Pass the CSS selector of the container
@@ -68,7 +69,7 @@ document.getElementById('export-btn').addEventListener('click', async () => {
 If you are using external fonts (like Google Fonts) that are hosted on a server without CORS headers, automatic detection might fail. In that case, you can explicitly pass the font URLs:
 
 ```javascript
-import { exportToPptx } from 'dom-to-pptx';
+import { exportToPptx } from '@247b/dom-to-pptx';
 
 await exportToPptx('#slide-container', {
   fileName: 'report.pptx',
@@ -87,7 +88,7 @@ await exportToPptx('#slide-container', {
 To export multiple HTML elements as separate slides, pass an array of elements or selectors:
 
 ```javascript
-import { exportToPptx } from 'dom-to-pptx';
+import { exportToPptx } from '@247b/dom-to-pptx';
 
 document.getElementById('export-btn').addEventListener('click', async () => {
   const slideElements = document.querySelectorAll('.slide');
@@ -102,7 +103,7 @@ document.getElementById('export-btn').addEventListener('click', async () => {
 If your HTML contains SVG elements (like charts), you can keep them as vectors for editing in PowerPoint:
 
 ```javascript
-import { exportToPptx } from 'dom-to-pptx';
+import { exportToPptx } from '@247b/dom-to-pptx';
 
 await exportToPptx('#slide-with-charts', {
   fileName: 'editable-charts.pptx',
@@ -114,20 +115,7 @@ In PowerPoint, right-click the SVG image and select **"Convert to Shape"** (or *
 
 ### 5. Browser Usage (Script Tags)
 
-You can use `dom-to-pptx` directly via CDN. The bundle includes all dependencies.
-
-```html
-<script src="https://cdn.jsdelivr.net/npm/dom-to-pptx@latest/dist/dom-to-pptx.bundle.js"></script>
-
-<script>
-  document.getElementById('export-btn').addEventListener('click', async () => {
-    // The library is available globally as `domToPptx`
-    await domToPptx.exportToPptx('#slide-container', {
-      fileName: 'slide.pptx',
-    });
-  });
-</script>
-```
+The package is published through GitHub Packages. If you need a browser `<script>` build, use the checked-in bundle from `dist/dom-to-pptx.bundle.js` in this repository or attach that file to your own CDN/release flow.
 
 ## Recommended HTML Structure
 
