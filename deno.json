@@ -1,4 +1,7 @@
 {
+  "name": "@247b/dom-to-pptx",
+  "version": "1.0.0",
+  "exports": "./src/index.js",
   "imports": {
     "fonteditor-core": "npm:fonteditor-core@^2.6.3",
     "html2canvas": "npm:html2canvas@^1.4.1",
