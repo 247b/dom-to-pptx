@@ -1,0 +1,10 @@
+{
+  "imports": {
+    "fonteditor-core": "npm:fonteditor-core@^2.6.3",
+    "html2canvas": "npm:html2canvas@^1.4.1",
+    "jszip": "npm:jszip@^3.10.1",
+    "opentype.js": "npm:opentype.js@^1.3.4",
+    "pako": "npm:pako@^2.1.0",
+    "pptxgenjs": "npm:pptxgenjs@^3.12.0"
+  }
+}
