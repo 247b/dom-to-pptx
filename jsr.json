@@ -1,0 +1,5 @@
+{
+  "name": "@247b/dom-to-pptx",
+  "version": "1.0.0",
+  "exports": "./src/index.js"
+}

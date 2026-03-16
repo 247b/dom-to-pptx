@@ -1,4 +1,4 @@
-name: Publish to npm on main
+name: Publish to JSR on main
 
 on:
   push:
@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
 
     steps:
       - name: Checkout code
@@ -22,7 +23,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -33,9 +38,5 @@ jobs:
       - name: Test
         run: bun run test
 
-      - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # Ensure package has the correct access (scoped packages are public by default)
-          npm publish --access public
+      - name: Publish to JSR
+        run: deno publish
