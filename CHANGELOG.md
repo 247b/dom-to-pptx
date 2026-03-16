@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.6] - 2026-03-16
+
+### Added
+
+- **Slide Transition Export**: Added support for slide-level PowerPoint transitions through HTML attributes on the slide root. Supported transitions are `cover`, `cut`, `fade`, `push`, and `wipe`, with optional speed, direction, click advance, and timed advance settings.
+
+### Changed
+
+- **Documentation**: Added usage and support docs for the new `data-pptx-transition*` slide attributes.
+
 ## [1.1.5] - 2026-02-07
 
 ### Added

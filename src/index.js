@@ -31,6 +31,61 @@ import { getProcessedImage } from './image-processor.js';
 
 const PPI = 96;
 const PX_TO_INCH = 1 / PPI;
+const PPTX_SLIDE_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
+const SLIDE_TRANSITION_DEFINITIONS = {
+  cover: {
+    xmlName: 'cover',
+    directions: ['l', 'r', 'u', 'd', 'lu', 'ld', 'ru', 'rd'],
+  },
+  cut: {
+    xmlName: 'cut',
+  },
+  fade: {
+    xmlName: 'fade',
+  },
+  push: {
+    xmlName: 'push',
+    directions: ['l', 'r', 'u', 'd'],
+  },
+  wipe: {
+    xmlName: 'wipe',
+    directions: ['l', 'r', 'u', 'd'],
+  },
+};
+const SLIDE_TRANSITION_SPEEDS = {
+  slow: 'slow',
+  medium: 'med',
+  med: 'med',
+  fast: 'fast',
+};
+const SLIDE_TRANSITION_DIRECTIONS = {
+  left: 'l',
+  l: 'l',
+  right: 'r',
+  r: 'r',
+  up: 'u',
+  u: 'u',
+  top: 'u',
+  down: 'd',
+  d: 'd',
+  bottom: 'd',
+  'left-up': 'lu',
+  'up-left': 'lu',
+  'top-left': 'lu',
+  lu: 'lu',
+  'left-down': 'ld',
+  'down-left': 'ld',
+  'bottom-left': 'ld',
+  ld: 'ld',
+  'right-up': 'ru',
+  'up-right': 'ru',
+  'top-right': 'ru',
+  ru: 'ru',
+  'right-down': 'rd',
+  'down-right': 'rd',
+  'bottom-right': 'rd',
+  rd: 'rd',
+};
 
 /**
  * Main export function.
@@ -59,6 +114,7 @@ export async function exportToPptx(target, options = {}) {
   pptx.layout = 'LAYOUT_16x9';
 
   const elements = Array.isArray(target) ? target : [target];
+  const slideTransitions = [];
 
   for (const el of elements) {
     const root = typeof el === 'string' ? document.querySelector(el) : el;
@@ -66,6 +122,7 @@ export async function exportToPptx(target, options = {}) {
       console.warn('Element not found, skipping slide:', el);
       continue;
     }
+    slideTransitions.push(getSlideTransitionConfig(root));
     const slide = pptx.addSlide();
     await processSlide(root, slide, pptx, options);
   }
@@ -97,35 +154,47 @@ export async function exportToPptx(target, options = {}) {
     }
   }
 
-  if (fontsToEmbed.length > 0) {
-    // Generate initial PPTX
+  const needsZipPostProcessing =
+    fontsToEmbed.length > 0 || slideTransitions.some((transition) => transition);
+
+  if (needsZipPostProcessing) {
     const initialBlob = await pptx.write({ outputType: 'blob' });
-
-    // Load into Embedder
     const zip = await JSZip.loadAsync(initialBlob);
-    const embedder = new PPTXEmbedFonts();
-    await embedder.loadZip(zip);
 
-    // Fetch and Embed
-    for (const fontCfg of fontsToEmbed) {
-      try {
-        const response = await fetch(fontCfg.url);
-        if (!response.ok) throw new Error(`Failed to fetch ${fontCfg.url}`);
-        const buffer = await response.arrayBuffer();
-
-        // Infer type
-        const ext = fontCfg.url.split('.').pop().split(/[?#]/)[0].toLowerCase();
-        let type = 'ttf';
-        if (['woff', 'otf'].includes(ext)) type = ext;
-
-        await embedder.addFont(fontCfg.name, buffer, type);
-      } catch (e) {
-        console.warn(`Failed to embed font: ${fontCfg.name} (${fontCfg.url})`, e);
-      }
+    if (slideTransitions.some((transition) => transition)) {
+      await injectSlideTransitions(zip, slideTransitions);
     }
 
-    await embedder.updateFiles();
-    finalBlob = await embedder.generateBlob();
+    if (fontsToEmbed.length > 0) {
+      const embedder = new PPTXEmbedFonts();
+      await embedder.loadZip(zip);
+
+      for (const fontCfg of fontsToEmbed) {
+        try {
+          const response = await fetch(fontCfg.url);
+          if (!response.ok) throw new Error(`Failed to fetch ${fontCfg.url}`);
+          const buffer = await response.arrayBuffer();
+
+          // Infer type
+          const ext = fontCfg.url.split('.').pop().split(/[?#]/)[0].toLowerCase();
+          let type = 'ttf';
+          if (['woff', 'otf'].includes(ext)) type = ext;
+
+          await embedder.addFont(fontCfg.name, buffer, type);
+        } catch (e) {
+          console.warn(`Failed to embed font: ${fontCfg.name} (${fontCfg.url})`, e);
+        }
+      }
+
+      await embedder.updateFiles();
+      finalBlob = await embedder.generateBlob();
+    } else {
+      finalBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+      });
+    }
   } else {
     // No fonts to embed
     finalBlob = await pptx.write({ outputType: 'blob' });
@@ -147,6 +216,145 @@ export async function exportToPptx(target, options = {}) {
 
   // Always return the blob so the caller can use it (e.g. upload to server)
   return finalBlob;
+}
+
+function normalizeAttributeValue(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function parseBooleanAttribute(value) {
+  const normalized = normalizeAttributeValue(value);
+  if (!normalized) return null;
+  if (['1', 'true', 'yes'].includes(normalized)) return true;
+  if (['0', 'false', 'no'].includes(normalized)) return false;
+  return null;
+}
+
+function getSlideTransitionConfig(root) {
+  const transitionType = normalizeAttributeValue(root.getAttribute('data-pptx-transition'));
+  if (!transitionType) return null;
+
+  const definition = SLIDE_TRANSITION_DEFINITIONS[transitionType];
+  if (!definition) {
+    console.warn(
+      `Unsupported slide transition "${transitionType}". Supported values: ${Object.keys(
+        SLIDE_TRANSITION_DEFINITIONS
+      ).join(', ')}.`
+    );
+    return null;
+  }
+
+  const config = { type: transitionType };
+  const speedValue = normalizeAttributeValue(root.getAttribute('data-pptx-transition-speed'));
+  if (speedValue) {
+    const speed = SLIDE_TRANSITION_SPEEDS[speedValue];
+    if (speed) {
+      config.speed = speed;
+    } else {
+      console.warn(
+        `Unsupported transition speed "${speedValue}". Supported values: slow, medium, fast.`
+      );
+    }
+  }
+
+  const directionValue = normalizeAttributeValue(
+    root.getAttribute('data-pptx-transition-direction')
+  );
+  if (directionValue) {
+    const direction = SLIDE_TRANSITION_DIRECTIONS[directionValue];
+    if (direction && definition.directions?.includes(direction)) {
+      config.direction = direction;
+    } else {
+      console.warn(
+        `Transition "${transitionType}" does not support direction "${directionValue}".`
+      );
+    }
+  }
+
+  const advanceOnClick = parseBooleanAttribute(
+    root.getAttribute('data-pptx-transition-advance-on-click')
+  );
+  if (advanceOnClick !== null) {
+    config.advanceOnClick = advanceOnClick;
+  }
+
+  const advanceTimeValue = root.getAttribute('data-pptx-transition-advance-time');
+  if (advanceTimeValue !== null) {
+    const advanceTime = Number.parseInt(advanceTimeValue, 10);
+    if (Number.isFinite(advanceTime) && advanceTime >= 0) {
+      config.advanceTime = advanceTime;
+    } else {
+      console.warn(
+        `Invalid data-pptx-transition-advance-time value "${advanceTimeValue}". Use milliseconds.`
+      );
+    }
+  }
+
+  return config;
+}
+
+function createSlideTransitionElement(doc, config) {
+  const definition = SLIDE_TRANSITION_DEFINITIONS[config.type];
+  const transitionEl = doc.createElementNS(PPTX_SLIDE_NS, 'p:transition');
+
+  if (config.speed) transitionEl.setAttribute('spd', config.speed);
+  if (typeof config.advanceOnClick === 'boolean') {
+    transitionEl.setAttribute('advClick', config.advanceOnClick ? '1' : '0');
+  }
+  if (Number.isFinite(config.advanceTime)) {
+    transitionEl.setAttribute('advTm', String(config.advanceTime));
+  }
+
+  const childEl = doc.createElementNS(PPTX_SLIDE_NS, `p:${definition.xmlName}`);
+  if (config.direction) childEl.setAttribute('dir', config.direction);
+  transitionEl.appendChild(childEl);
+
+  return transitionEl;
+}
+
+async function injectSlideTransitions(zip, slideTransitions) {
+  await Promise.all(
+    slideTransitions.map(async (transition, index) => {
+      if (!transition) return;
+
+      const slidePath = `ppt/slides/slide${index + 1}.xml`;
+      const file = zip.file(slidePath);
+      if (!file) {
+        console.warn(`Slide XML not found for transition injection: ${slidePath}`);
+        return;
+      }
+
+      const xmlStr = await file.async('string');
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(xmlStr, 'application/xml');
+      const slideEl = doc.getElementsByTagNameNS(PPTX_SLIDE_NS, 'sld')[0];
+
+      if (!slideEl) {
+        console.warn(`Invalid slide XML, could not find p:sld root: ${slidePath}`);
+        return;
+      }
+
+      const directChildren = Array.from(slideEl.childNodes).filter((node) => node.nodeType === 1);
+      const existingTransition = directChildren.find((node) => node.localName === 'transition');
+      if (existingTransition) {
+        slideEl.removeChild(existingTransition);
+      }
+
+      const transitionEl = createSlideTransitionElement(doc, transition);
+      const updatedChildren = Array.from(slideEl.childNodes).filter((node) => node.nodeType === 1);
+      const insertionPoint = updatedChildren.find((node) =>
+        ['transition', 'timing', 'extLst'].includes(node.localName)
+      );
+
+      if (insertionPoint && insertionPoint.parentNode === slideEl) {
+        slideEl.insertBefore(transitionEl, insertionPoint);
+      } else {
+        slideEl.appendChild(transitionEl);
+      }
+
+      zip.file(slidePath, new XMLSerializer().serializeToString(doc));
+    })
+  );
 }
 
 /**

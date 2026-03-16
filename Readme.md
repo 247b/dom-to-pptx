@@ -1,12 +1,12 @@
 # dom-to-pptx
 
-**The High-Fidelity HTML to PowerPoint Converter (v1.1.5)**
+**The High-Fidelity HTML to PowerPoint Converter (v1.1.6)**
 
 Most HTML-to-PPTX libraries fail when faced with modern web design. They break on gradients, misalign text, ignore rounded corners, or simply take a screenshot (which isn't editable).
 
 **dom-to-pptx** is different. It is a **Coordinate Scraper & Style Engine** that traverses your DOM, calculates the exact computed styles of every element (Flexbox/Grid positions, complex gradients, shadows), and mathematically maps them to native PowerPoint shapes and text boxes. The result is a fully editable, vector-sharp presentation that looks exactly like your web view.
 
-### 🛠️ Updates in v1.1.5
+### 🛠️ Updates in v1.1.6
 
 - **SVG Vector Export:** New `svgAsVector` option keeps SVG elements as vectors instead of rasterizing them. This enables "Convert to Shape" in PowerPoint for editable charts and graphics.
 - **Fontawesome Icon partially rendering:** Solved icon clipping issues by injecting a global style tag to enforce FontAwesome font family and correct image display properties during potential rasterization.
@@ -113,7 +113,42 @@ await exportToPptx('#slide-with-charts', {
 
 In PowerPoint, right-click the SVG image and select **"Convert to Shape"** (or **Group > Ungroup**) to make it fully editable.
 
-### 5. Browser Usage (Script Tags)
+### 5. Slide Transitions
+
+PowerPoint slide transitions are configured on the **root HTML element for each slide**.
+
+Supported values for `data-pptx-transition`:
+
+- `cover`
+- `cut`
+- `fade`
+- `push`
+- `wipe`
+
+Optional slide-level attributes:
+
+- `data-pptx-transition-speed="slow|medium|fast"`
+- `data-pptx-transition-direction="left|right|up|down"`
+- `data-pptx-transition-direction="top-left|top-right|bottom-left|bottom-right"` for `cover`
+- `data-pptx-transition-advance-on-click="true|false"`
+- `data-pptx-transition-advance-time="2000"` in milliseconds
+
+Example:
+
+```html
+<div
+  class="slide"
+  data-pptx-transition="cover"
+  data-pptx-transition-speed="slow"
+  data-pptx-transition-direction="right"
+>
+  ...
+</div>
+```
+
+This generates a `p:transition` node in `ppt/slides/slideN.xml`. CSS `transition` is still not exported.
+
+### 6. Browser Usage (Script Tags)
 
 The package is published through GitHub Packages. If you need a browser `<script>` build, use the checked-in bundle from `dist/dom-to-pptx.bundle.js` in this repository or attach that file to your own CDN/release flow.
 

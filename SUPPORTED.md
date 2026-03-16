@@ -15,6 +15,14 @@ Note: The library measures computed layout from the browser (getBoundingClientRe
 - input (text), textarea (simple text extraction)
 - figure, figcaption
 
+## Supported slide-level export attributes
+
+- `data-pptx-transition` on the slide root (`cover`, `cut`, `fade`, `push`, `wipe`)
+- `data-pptx-transition-speed` (`slow`, `medium`, `fast`)
+- `data-pptx-transition-direction` (`left`, `right`, `up`, `down`; plus diagonal values for `cover`)
+- `data-pptx-transition-advance-on-click` (`true`, `false`)
+- `data-pptx-transition-advance-time` (milliseconds)
+
 ## Supported CSS properties (rendered visually)
 
 - background-color, background-image (linear-gradient)
@@ -43,7 +51,7 @@ These classes are examples; dom-to-pptx reads computed styles, so any combinatio
 
 ## Limitations
 
-- Complex CSS animations/transitions are not exported — only the current computed visual state is captured.
+- Complex CSS animations/transitions are not exported — only the current computed visual state is captured. Slide export transitions are supported only through the `data-pptx-transition*` attributes above.
 - Some advanced CSS features (CSS variables used as colors, filters beyond blur) may not map 1:1.
 - For images to be processed via canvas (rounded images), the source must be CORS-accessible (`Access-Control-Allow-Origin` header) or the image will be skipped or rendered as-is.
 

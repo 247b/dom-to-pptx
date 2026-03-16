@@ -118,6 +118,41 @@ If using `<style>` tags, ensure styles are applied correctly during export:
 
 ---
 
+## Slide-Level PowerPoint Transitions
+
+If you want a PowerPoint slide transition, add attributes to the **root element of the slide**:
+
+```html
+<div
+  class="slide"
+  data-pptx-transition="cover"
+  data-pptx-transition-speed="slow"
+  data-pptx-transition-direction="right"
+>
+  ...
+</div>
+```
+
+Supported `data-pptx-transition` values:
+
+- `cover`
+- `cut`
+- `fade`
+- `push`
+- `wipe`
+
+Optional attributes:
+
+- `data-pptx-transition-speed="slow|medium|fast"`
+- `data-pptx-transition-direction="left|right|up|down"`
+- `data-pptx-transition-direction="top-left|top-right|bottom-left|bottom-right"` for `cover`
+- `data-pptx-transition-advance-on-click="true|false"`
+- `data-pptx-transition-advance-time="2000"` in milliseconds
+
+These attributes generate Open XML slide transition nodes in `ppt/slides/slideN.xml`. Standard CSS `transition` animations are still ignored.
+
+---
+
 ## Image Handling
 
 ### 1. Using Network Images
