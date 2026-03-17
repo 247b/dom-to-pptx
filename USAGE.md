@@ -125,7 +125,7 @@ If you want a PowerPoint slide transition, add attributes to the **root element 
 ```html
 <div
   class="slide"
-  data-pptx-transition="cover"
+  data-pptx-transition="pan"
   data-pptx-transition-speed="slow"
   data-pptx-transition-direction="right"
 >
@@ -135,17 +135,12 @@ If you want a PowerPoint slide transition, add attributes to the **root element 
 
 Supported `data-pptx-transition` values:
 
-- `cover`
-- `cut`
-- `fade`
-- `push`
-- `wipe`
+- `pan`
 
 Optional attributes:
 
 - `data-pptx-transition-speed="slow|medium|fast"`
 - `data-pptx-transition-direction="left|right|up|down"`
-- `data-pptx-transition-direction="top-left|top-right|bottom-left|bottom-right"` for `cover`
 - `data-pptx-transition-advance-on-click="true|false"`
 - `data-pptx-transition-advance-time="2000"` in milliseconds
 

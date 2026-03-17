@@ -119,17 +119,12 @@ PowerPoint slide transitions are configured on the **root HTML element for each 
 
 Supported values for `data-pptx-transition`:
 
-- `cover`
-- `cut`
-- `fade`
-- `push`
-- `wipe`
+- `pan`
 
 Optional slide-level attributes:
 
 - `data-pptx-transition-speed="slow|medium|fast"`
 - `data-pptx-transition-direction="left|right|up|down"`
-- `data-pptx-transition-direction="top-left|top-right|bottom-left|bottom-right"` for `cover`
 - `data-pptx-transition-advance-on-click="true|false"`
 - `data-pptx-transition-advance-time="2000"` in milliseconds
 
@@ -138,7 +133,7 @@ Example:
 ```html
 <div
   class="slide"
-  data-pptx-transition="cover"
+  data-pptx-transition="pan"
   data-pptx-transition-speed="slow"
   data-pptx-transition-direction="right"
 >

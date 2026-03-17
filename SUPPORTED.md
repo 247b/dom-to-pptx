@@ -17,9 +17,9 @@ Note: The library measures computed layout from the browser (getBoundingClientRe
 
 ## Supported slide-level export attributes
 
-- `data-pptx-transition` on the slide root (`cover`, `cut`, `fade`, `push`, `wipe`)
+- `data-pptx-transition` on the slide root (`pan`)
 - `data-pptx-transition-speed` (`slow`, `medium`, `fast`)
-- `data-pptx-transition-direction` (`left`, `right`, `up`, `down`; plus diagonal values for `cover`)
+- `data-pptx-transition-direction` (`left`, `right`, `up`, `down`)
 - `data-pptx-transition-advance-on-click` (`true`, `false`)
 - `data-pptx-transition-advance-time` (milliseconds)
 

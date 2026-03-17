@@ -32,23 +32,14 @@ import { getProcessedImage } from './image-processor.js';
 const PPI = 96;
 const PX_TO_INCH = 1 / PPI;
 const PPTX_SLIDE_NS = 'http://schemas.openxmlformats.org/presentationml/2006/main';
+const PPTX_MC_NS = 'http://schemas.openxmlformats.org/markup-compatibility/2006';
+const PPTX_SLIDE_2010_NS = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
 const SLIDE_TRANSITION_DEFINITIONS = {
-  cover: {
-    xmlName: 'cover',
-    directions: ['l', 'r', 'u', 'd', 'lu', 'ld', 'ru', 'rd'],
-  },
-  cut: {
-    xmlName: 'cut',
-  },
-  fade: {
-    xmlName: 'fade',
-  },
-  push: {
-    xmlName: 'push',
-    directions: ['l', 'r', 'u', 'd'],
-  },
-  wipe: {
-    xmlName: 'wipe',
+  pan: {
+    prefix: 'p14',
+    xmlName: 'pan',
+    namespaceUri: PPTX_SLIDE_2010_NS,
+    ignorablePrefix: 'p14',
     directions: ['l', 'r', 'u', 'd'],
   },
 };
@@ -69,22 +60,6 @@ const SLIDE_TRANSITION_DIRECTIONS = {
   down: 'd',
   d: 'd',
   bottom: 'd',
-  'left-up': 'lu',
-  'up-left': 'lu',
-  'top-left': 'lu',
-  lu: 'lu',
-  'left-down': 'ld',
-  'down-left': 'ld',
-  'bottom-left': 'ld',
-  ld: 'ld',
-  'right-up': 'ru',
-  'up-right': 'ru',
-  'top-right': 'ru',
-  ru: 'ru',
-  'right-down': 'rd',
-  'down-right': 'rd',
-  'bottom-right': 'rd',
-  rd: 'rd',
 };
 
 /**
@@ -305,11 +280,50 @@ function createSlideTransitionElement(doc, config) {
     transitionEl.setAttribute('advTm', String(config.advanceTime));
   }
 
-  const childEl = doc.createElementNS(PPTX_SLIDE_NS, `p:${definition.xmlName}`);
+  const childPrefix = definition.prefix || 'p';
+  const childNamespace = definition.namespaceUri || PPTX_SLIDE_NS;
+  const childEl = doc.createElementNS(childNamespace, `${childPrefix}:${definition.xmlName}`);
   if (config.direction) childEl.setAttribute('dir', config.direction);
   transitionEl.appendChild(childEl);
 
   return transitionEl;
+}
+
+function ensureNamespaceDeclaration(element, prefix, namespaceUri) {
+  if (!element || !prefix || !namespaceUri) return;
+  if (element.getAttribute(`xmlns:${prefix}`) !== namespaceUri) {
+    element.setAttributeNS('http://www.w3.org/2000/xmlns/', `xmlns:${prefix}`, namespaceUri);
+  }
+}
+
+function ensureIgnorablePrefix(element, prefix) {
+  if (!element || !prefix) return;
+
+  ensureNamespaceDeclaration(element, 'mc', PPTX_MC_NS);
+
+  const currentValue = element.getAttributeNS(PPTX_MC_NS, 'Ignorable') || '';
+  const prefixes = currentValue
+    .split(/\s+/)
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!prefixes.includes(prefix)) {
+    prefixes.push(prefix);
+    element.setAttributeNS(PPTX_MC_NS, 'mc:Ignorable', prefixes.join(' '));
+  }
+}
+
+function ensureSlideTransitionNamespaces(slideEl, transition) {
+  const definition = SLIDE_TRANSITION_DEFINITIONS[transition.type];
+  if (!definition) return;
+
+  if (definition.prefix && definition.namespaceUri) {
+    ensureNamespaceDeclaration(slideEl, definition.prefix, definition.namespaceUri);
+  }
+
+  if (definition.ignorablePrefix) {
+    ensureIgnorablePrefix(slideEl, definition.ignorablePrefix);
+  }
 }
 
 async function injectSlideTransitions(zip, slideTransitions) {
@@ -333,6 +347,8 @@ async function injectSlideTransitions(zip, slideTransitions) {
         console.warn(`Invalid slide XML, could not find p:sld root: ${slidePath}`);
         return;
       }
+
+      ensureSlideTransitionNamespaces(slideEl, transition);
 
       const directChildren = Array.from(slideEl.childNodes).filter((node) => node.nodeType === 1);
       const existingTransition = directChildren.find((node) => node.localName === 'transition');
