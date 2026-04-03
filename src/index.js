@@ -86,7 +86,6 @@ export async function exportToPptx(target, options = {}) {
   const PptxConstructor = resolvePptxConstructor(PptxGenJS);
   if (!PptxConstructor) throw new Error('PptxGenJS constructor not found.');
   const pptx = new PptxConstructor();
-  pptx.layout = 'LAYOUT_16x9';
 
   const elements = Array.isArray(target) ? target : [target];
   const slideTransitions = [];
@@ -381,19 +380,20 @@ async function injectSlideTransitions(zip, slideTransitions) {
  */
 async function processSlide(root, slide, pptx, globalOptions = {}) {
   const rootRect = root.getBoundingClientRect();
-  const PPTX_WIDTH_IN = 10;
-  const PPTX_HEIGHT_IN = 5.625;
 
-  const contentWidthIn = rootRect.width * PX_TO_INCH;
-  const contentHeightIn = rootRect.height * PX_TO_INCH;
-  const scale = Math.min(PPTX_WIDTH_IN / contentWidthIn, PPTX_HEIGHT_IN / contentHeightIn);
+  const PPTX_WIDTH_IN = rootRect.width * PX_TO_INCH;
+  const PPTX_HEIGHT_IN = rootRect.height * PX_TO_INCH;
+  const scale = 1.0; // No scaling — 1:1 mapping
+
+  pptx.defineLayout({ name: 'CUSTOM', width: PPTX_WIDTH_IN, height: PPTX_HEIGHT_IN });
+  pptx.layout = 'CUSTOM';
 
   const layoutConfig = {
     rootX: rootRect.x,
     rootY: rootRect.y,
     scale: scale,
-    offX: (PPTX_WIDTH_IN - contentWidthIn * scale) / 2,
-    offY: (PPTX_HEIGHT_IN - contentHeightIn * scale) / 2,
+    offX: 0,
+    offY: 0,
   };
 
   const renderQueue = [];
@@ -824,7 +824,7 @@ function prepareRenderItem(
           const markerFs = parseFloat(markerStyle.fontSize);
           if (!isNaN(markerFs) && markerFs > 0) {
             // Convert px->pt for PPTX
-            markerFontSize = markerFs * 0.75 * config.scale;
+            markerFontSize = markerFs;
           }
         }
 
@@ -839,8 +839,6 @@ function prepareRenderItem(
       // PptxGenJS 'indent' = Space between bullet and text?
       // Actually PptxGenJS 'indent' allows setting the hanging indent.
       // We calculate the TOTAL visual offset from the parent container.
-      // 1 px = 0.75 pt (approx, standard DTP).
-      // We must scale it by config.scale.
       const visualIndentPx = liRect.left - parentRect.left;
       /*
          Standard indent in PPT is ~27pt.
@@ -848,7 +846,7 @@ function prepareRenderItem(
          If visualIndentPx is large (40px padding), we want large indent.
          We treat 'indent' as the value to pass to PptxGenJS.
       */
-      const computedIndentPt = visualIndentPx * 0.75 * config.scale;
+      const computedIndentPt = visualIndentPx;
 
       if (bullet && computedIndentPt > 0) {
         bullet.indent = computedIndentPt;
@@ -908,8 +906,8 @@ function prepareRenderItem(
         else {
           const mt = parseFloat(liStyle.marginTop) || 0;
           const mb = parseFloat(liStyle.marginBottom) || 0;
-          if (mt > 0) ptBefore = mt * 0.75 * config.scale;
-          if (mb > 0) ptAfter = mb * 0.75 * config.scale;
+          if (mt > 0) ptBefore = mt;
+          if (mb > 0) ptAfter = mb;
         }
 
         if (ptBefore > 0) parts[0].options.paraSpaceBefore = ptBefore;

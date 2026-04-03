@@ -25,7 +25,7 @@ function getTableBorder(style, side, scale) {
   if (styleStr === 'dotted') dash = 'dot';
 
   return {
-    pt: width * 0.75 * scale, // Convert px to pt
+    pt: width, // 1:1 px to pt mapping
     color: color.hex,
     style: dash,
   };
@@ -244,7 +244,7 @@ export function getBorderInfo(style, scale) {
     return {
       type: 'uniform',
       options: {
-        width: top.width * 0.75 * scale,
+        width: top.width,
         color: top.color,
         transparency: (1 - parseColor(style.borderTopColor).opacity) * 100,
         dashType: mapDashType(top.style),
@@ -410,7 +410,7 @@ export function getPadding(style, scale) {
 export function getSoftEdges(filterStr, scale) {
   if (!filterStr || filterStr === 'none') return null;
   const match = filterStr.match(/blur\(([\d.]+)px\)/);
-  if (match) return parseFloat(match[1]) * 0.75 * scale;
+  if (match) return parseFloat(match[1]);
   return null;
 }
 
@@ -438,9 +438,7 @@ export function getTextStyle(style, scale) {
     }
 
     if (!isNaN(lhPx) && lhPx > 0) {
-      // Convert Pixel Height to Point Height (1px = 0.75pt)
-      // And apply the global layout scale.
-      lineSpacing = lhPx * 0.75 * scale;
+      lineSpacing = lhPx;
     }
   }
 
@@ -452,13 +450,13 @@ export function getTextStyle(style, scale) {
   const mt = parseFloat(style.marginTop) || 0;
   const mb = parseFloat(style.marginBottom) || 0;
 
-  if (mt > 0) paraSpaceBefore = mt * 0.75 * scale;
-  if (mb > 0) paraSpaceAfter = mb * 0.75 * scale;
+  if (mt > 0) paraSpaceBefore = mt;
+  if (mb > 0) paraSpaceAfter = mb;
 
   return {
     color: colorObj.hex || '000000',
     fontFace: style.fontFamily.split(',')[0].replace(/['"]/g, ''),
-    fontSize: Math.floor(fontSizePx * 0.75 * scale),
+    fontSize: Math.floor(fontSizePx),
     bold: parseInt(style.fontWeight) >= 600,
     italic: style.fontStyle === 'italic',
     underline: style.textDecoration.includes('underline'),
@@ -676,8 +674,8 @@ export function getVisibleShadow(shadowStr, scale) {
       return {
         type: 'outer',
         angle: angle,
-        blur: blur * 0.75 * scale,
-        offset: distance * 0.75 * scale,
+        blur: blur,
+        offset: distance,
         color: colorObj.hex || '000000',
         opacity: colorObj.opacity,
       };
